@@ -5,6 +5,9 @@ using FirebaseAdmin;
 using FirebaseAdmin.Auth;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.Extensions.Logging;
+using System.Net.Http;
+using System.Text.Json;
+using System.Text;
 
 namespace eCommerce.API.Services;
 
@@ -12,7 +15,7 @@ public interface IFirebaseAuthService
 {
     Task<string> VerifyToken(string token);
     Task<UserResponseDto> CreateUser(RegisterUserDto registerDto);
-    Task<string> SignInWithPassword(LoginUserDto loginDto);
+    Task<AuthResponseDto> SignInWithPassword(LoginUserDto loginDto);
     Task<UserResponseDto?> GetUserInfo(string uid);
     Task RevokeUserSessions(string uid);
 }
@@ -21,6 +24,7 @@ public class FirebaseAuthService : IFirebaseAuthService
     private readonly FirebaseAuth _auth;
     private readonly IFirestoreService _firestore;
     private readonly ILogger<FirebaseAuthService> _logger;
+    private readonly IConfiguration _configuration;
 
     public FirebaseAuthService(IConfiguration configuration,
                              IFirestoreService firestore,
@@ -37,6 +41,7 @@ public class FirebaseAuthService : IFirebaseAuthService
         _auth = FirebaseAuth.DefaultInstance;
         _firestore = firestore;
         _logger = logger;
+        _configuration = configuration;
     }
 
     public async Task<UserResponseDto> CreateUser(RegisterUserDto registerDto)
@@ -85,16 +90,35 @@ public class FirebaseAuthService : IFirebaseAuthService
         }
     }
 
-    public async Task<string> SignInWithPassword(LoginUserDto loginDto)
+    public async Task<AuthResponseDto> SignInWithPassword(LoginUserDto loginDto)
     {
         try
         {
             _logger.LogInformation("Authenticating user with email: {Email}", loginDto.Email);
-            var user = await _auth.GetUserByEmailAsync(loginDto.Email);
 
-            var docRef = _firestore.Users.Document(user.Uid);
+            // Make direct HTTP request to Firebase Auth REST API
+            using var client = new HttpClient();
+            var response = await client.PostAsync(
+                $"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={_configuration["Firebase:WebApiKey"]}",
+                new StringContent(JsonSerializer.Serialize(new
+                {
+                    email = loginDto.Email,
+                    password = loginDto.Password,
+                    returnSecureToken = true
+                }), Encoding.UTF8, "application/json"));
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadFromJsonAsync<FirebaseErrorResponse>();
+                throw new UnauthorizedAccessException($"Authentication failed: {error?.Error?.Message}");
+            }
+
+            var authResult = await response.Content.ReadFromJsonAsync<FirebaseAuthResponse>();
+
+            // Update last login time in Firestore
             try
             {
+                var docRef = _firestore.Users.Document(authResult.LocalId);
                 await docRef.UpdateAsync(new Dictionary<string, object>
                 {
                     { "LastLoginAt", DateTime.UtcNow }
@@ -105,19 +129,19 @@ public class FirebaseAuthService : IFirebaseAuthService
                 _logger.LogWarning("Failed to update user's last login time");
             }
 
-            var customToken = await _auth.CreateCustomTokenAsync(user.Uid);
-            _logger.LogInformation("Successfully authenticated user. UserId: {UserId}", user.Uid);
-            return customToken;
-        }
-        catch (FirebaseAuthException ex)
-        {
-            _logger.LogWarning("Authentication failed: {Message}", ex.Message);
-            throw new UnauthorizedAccessException($"Authentication failed: {ex.Message}");
+            _logger.LogInformation("Successfully authenticated user. UserId: {UserId}", authResult.LocalId);
+
+            return new AuthResponseDto
+            {
+                IdToken = authResult.IdToken,
+                RefreshToken = authResult.RefreshToken,
+                ExpiresIn = authResult.ExpiresIn
+            };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unexpected error occurred");
-            throw new Exception($"An unexpected error occurred: {ex.Message}");
+            _logger.LogError(ex, "Authentication failed for email: {Email}", loginDto.Email);
+            throw;
         }
     }
 
