@@ -42,10 +42,10 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Authenticates user with Firebase and returns a custom token
+    /// Authenticates user with Firebase and returns a custom token, add this token to Authorization header for future requests
     /// </summary>
     /// <param name="loginDto">User credentials (email and password)</param>
-    /// <returns>Firebase custom authentication token</returns>
+    /// <returns>Firebase idToken, refreshToken and expire time</returns>
     /// <response code="200">Returns the custom authentication token</response>
     /// <response code="401">If credentials are invalid</response>
     /// <response code="500">If an unexpected error occurs during authentication</response>
