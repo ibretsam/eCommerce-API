@@ -1,0 +1,64 @@
+# .NET build outputs
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.suo
+*.user
+.vs/
+.vscode/
+*.dll
+*.pdb
+*.cache
+
+# Firebase config
+firebase-config.json
+**/appsettings.*.json
+!appsettings.json
+
+# Test Results
+TestResults/
+[Cc]overage/
+*.trx
+*.coverage
+*.opencover.xml
+
+# Dependencies
+packages/
+*.nuget.props
+*.nuget.targets
+
+# IDE files
+.idea/
+*.sln.iml
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio files
+.vs/
+*.userprefs
+*.usertasks
+*.[Cc]ache
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
