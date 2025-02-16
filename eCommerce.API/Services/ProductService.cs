@@ -12,7 +12,17 @@ using ValidationException = eCommerce.API.Middleware.Exceptions.ValidationExcept
 
 namespace eCommerce.API.Services
 {
-    public class ProductService
+    public interface IProductService
+    {
+        Task SeedSampleProducts();
+        Task<List<Product>> GetAllProducts();
+        Task<Product> GetProductById(string id);
+        Task<Product> CreateProduct(CreateProductDto productDto);
+        Task<Product?> UpdateProduct(string id, UpdateProductDto productDto);
+        Task<bool> DeleteProduct(string id);
+        Task<List<Product>> SearchProducts(string name);
+    }
+    public class ProductService : IProductService
     {
         private readonly IFirestoreService _firestore;
         private readonly ILogger<ProductService> _logger;
@@ -104,13 +114,7 @@ namespace eCommerce.API.Services
                 if (string.IsNullOrEmpty(id))
                     throw new ValidationException("Product ID cannot be empty");
 
-                var docRef = _firestore.Products.Document(id);
-                var snapshot = await docRef.GetSnapshotAsync();
-
-                if (!snapshot.Exists)
-                    throw new ProductNotFoundException(id);
-
-                return snapshot.ConvertTo<Product>();
+                return await _firestore.GetProductById(id);
             }
             catch (Exception ex)
             {
@@ -124,10 +128,8 @@ namespace eCommerce.API.Services
             try
             {
                 _logger.LogInformation("Creating new product: {ProductName}", productDto.Name);
-                var docRef = _firestore.Products.Document();
                 var product = new Product
                 {
-                    Id = docRef.Id,
                     Name = productDto.Name,
                     Description = productDto.Description,
                     Price = productDto.Price,
@@ -135,9 +137,7 @@ namespace eCommerce.API.Services
                     ProductType = productDto.ProductType
                 };
 
-                await docRef.SetAsync(product);
-                _logger.LogInformation("Created product with ID: {ProductId}", product.Id);
-                return product;
+                return await _firestore.CreateProduct(product);
             }
             catch (Exception ex)
             {
@@ -154,24 +154,19 @@ namespace eCommerce.API.Services
                 if (string.IsNullOrEmpty(id))
                     throw new ValidationException("Product ID cannot be empty");
 
-                var docRef = _firestore.Products.Document(id);
-                var snapshot = await docRef.GetSnapshotAsync();
+                var existingProduct = await _firestore.GetProductById(id);
 
-                if (!snapshot.Exists)
-                    throw new ProductNotFoundException(id);
+                var updatedProduct = new Product
+                {
+                    Id = id,
+                    Name = productDto.Name ?? existingProduct.Name,
+                    Description = productDto.Description ?? existingProduct.Description,
+                    Price = productDto.Price ?? existingProduct.Price,
+                    PictureUrl = productDto.PictureUrl ?? existingProduct.PictureUrl,
+                    ProductType = productDto.ProductType ?? existingProduct.ProductType
+                };
 
-                var updates = new Dictionary<string, object?>();
-                if (productDto.Name != null) updates["Name"] = productDto.Name;
-                if (productDto.Description != null) updates["Description"] = productDto.Description;
-                if (productDto.Price.HasValue) updates["Price"] = productDto.Price;
-                if (productDto.PictureUrl != null) updates["PictureUrl"] = productDto.PictureUrl;
-                if (productDto.ProductType != null) updates["ProductType"] = productDto.ProductType;
-
-                await docRef.UpdateAsync(updates);
-
-                var updatedSnapshot = await docRef.GetSnapshotAsync();
-                _logger.LogInformation("Updated product: {ProductName}", updatedSnapshot.ConvertTo<Product>().Name);
-                return updatedSnapshot.ConvertTo<Product>();
+                return await _firestore.UpdateProduct(id, updatedProduct);
             }
             catch (Exception ex)
             {
@@ -210,8 +205,7 @@ namespace eCommerce.API.Services
             try
             {
                 _logger.LogInformation("Searching for products with name: {ProductName}", name);
-                var snapshot = await _firestore.Products.GetSnapshotAsync();
-                var products = snapshot.Documents.Select(doc => doc.ConvertTo<Product>()).ToList();
+                var products = await _firestore.GetAllProducts();
 
                 if (string.IsNullOrEmpty(name))
                     return products;

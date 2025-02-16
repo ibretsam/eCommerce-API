@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 using eCommerce.API.Services;
+using eCommerce.API.Middleware.Exceptions;
 
 namespace eCommerce.Tests.Services
 {
@@ -72,6 +73,45 @@ namespace eCommerce.Tests.Services
                     It.IsAny<Exception>(),
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
+        }
+
+        // [Fact]
+        // public async Task GetProductById_ThrowsNotFoundException_WhenProductDoesNotExist()
+        // {
+        //     // Arrange
+        //     var service = CreateService();
+        //     var nonExistentId = "non-existent-id";
+
+        //     // Act & Assert
+        //     await Assert.ThrowsAsync<ProductNotFoundException>(() =>
+        //         service.GetProductById(nonExistentId));
+        // }
+
+        [Fact]
+        public async Task DeleteProduct_ReturnsFalse_WhenProductDoesNotExist()
+        {
+            // Arrange
+            var service = CreateService();
+            var nonExistentId = "non-existent-id";
+
+            // Act
+            var result = await service.DeleteProduct(nonExistentId);
+
+            // Assert
+            Assert.False(result);
+        }
+
+        private FirestoreService CreateService()
+        {
+            var configData = new Dictionary<string, string>
+        {
+            { "Firebase:ProjectId", "test-project" }
+        };
+            IConfiguration configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(configData)
+                .Build();
+            var loggerMock = new Mock<ILogger<FirestoreService>>();
+            return new FirestoreService(configuration, loggerMock.Object);
         }
     }
 }

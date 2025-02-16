@@ -17,10 +17,10 @@ namespace eCommerce.API.Controllers;
 [Authorize]
 public class ProductController : ControllerBase
 {
-    private readonly ProductService _productService;
+    private readonly IProductService _productService;
     private readonly ILogger<ProductController> _logger;
 
-    public ProductController(ProductService productService, ILogger<ProductController> logger)
+    public ProductController(IProductService productService, ILogger<ProductController> logger)
     {
         _productService = productService;
         _logger = logger;

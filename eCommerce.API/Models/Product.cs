@@ -6,7 +6,7 @@ namespace eCommerce.API.Models;
 public class Product
 {
     [FirestoreDocumentId]
-    public required string Id { get; set; }
+    public string Id { get; set; }
 
     [FirestoreProperty]
     public required string Name { get; set; }
