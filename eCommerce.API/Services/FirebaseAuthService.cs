@@ -27,8 +27,8 @@ public class FirebaseAuthService : IFirebaseAuthService
     private readonly IConfiguration _configuration;
 
     public FirebaseAuthService(IConfiguration configuration,
-                         IFirestoreService firestore,
-                         ILogger<FirebaseAuthService> logger)
+                     IFirestoreService firestore,
+                     ILogger<FirebaseAuthService> logger)
     {
         _configuration = configuration;
         _firestore = firestore;
@@ -38,18 +38,27 @@ public class FirebaseAuthService : IFirebaseAuthService
         {
             if (FirebaseApp.DefaultInstance == null)
             {
-                var credentialsPath = Path.GetFullPath(configuration["Firebase:CredentialsPath"]
-                    ?? throw new ArgumentException("Firebase:CredentialsPath configuration is required"));
-
-                _logger.LogInformation("Loading credentials from: {CredentialsPath}", credentialsPath);
-
-                if (!File.Exists(credentialsPath))
+                GoogleCredential credential;
+                try
                 {
-                    throw new FileNotFoundException($"Credentials file not found at: {credentialsPath}");
+                    // Try to get Application Default Credentials first (works in Cloud Run)
+                    credential = GoogleCredential.GetApplicationDefault()
+                        .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
                 }
+                catch
+                {
+                    // Fall back to local credentials file
+                    var credentialsPath = Path.GetFullPath(configuration["Firebase:CredentialsPath"] ??
+                        throw new ArgumentException("Firebase:CredentialsPath configuration is required"));
 
-                var credential = GoogleCredential.FromFile(credentialsPath)
-                    .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
+                    if (!File.Exists(credentialsPath))
+                    {
+                        throw new FileNotFoundException($"Credentials file not found at: {credentialsPath}");
+                    }
+
+                    credential = GoogleCredential.FromFile(credentialsPath)
+                        .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
+                }
 
                 FirebaseApp.Create(new AppOptions
                 {
@@ -62,7 +71,7 @@ public class FirebaseAuthService : IFirebaseAuthService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to initialize Firebase: {Message}", ex.Message);
+            _logger.LogError(ex, "Failed to initialize Firebase Auth");
             throw;
         }
     }
