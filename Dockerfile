@@ -21,8 +21,11 @@ COPY --from=build /app/publish .
 # Create directory for Firebase credentials
 RUN mkdir -p /app/config
 
-# Expose port
-EXPOSE 80
-EXPOSE 443
+# Set environment variables for Cloud Run
+ENV ASPNETCORE_URLS=http://+:${PORT}
+ENV PORT=8080
+
+# Expose the port
+EXPOSE ${PORT}
 
 ENTRYPOINT ["dotnet", "eCommerce.API.dll"]
