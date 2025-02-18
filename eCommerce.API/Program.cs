@@ -103,6 +103,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
+// Configure for Cloud Run
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+var url = $"http://0.0.0.0:{port}";
 
 app.UseHttpsRedirection();
 
@@ -110,4 +113,5 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+// Start listening on the Cloud Run port
+app.Run(url);
