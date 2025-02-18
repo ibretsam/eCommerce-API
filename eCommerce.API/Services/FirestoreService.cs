@@ -1,6 +1,7 @@
 using System;
 using eCommerce.API.Middleware.Exceptions;
 using eCommerce.API.Models;
+using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Firestore;
 
 namespace eCommerce.API.Services;
@@ -27,8 +28,24 @@ public class FirestoreService : IFirestoreService
         {
             string projectId = configuration["Firebase:ProjectId"] ??
                 throw new ArgumentException("Firebase:ProjectId configuration is required");
+
+            string credentialsPath = Path.GetFullPath(configuration["Firebase:CredentialsPath"] ??
+                throw new ArgumentException("Firebase:CredentialsPath configuration is required"));
+
+            if (!File.Exists(credentialsPath))
+            {
+                throw new FileNotFoundException($"Credentials file not found at: {credentialsPath}");
+            }
+
             _logger.LogInformation("Initializing Firestore with project ID: {ProjectId}", projectId);
-            _db = FirestoreDb.Create(projectId);
+
+            var builder = new FirestoreDbBuilder
+            {
+                ProjectId = projectId,
+                Credential = GoogleCredential.FromFile(credentialsPath)
+            };
+
+            _db = builder.Build();
         }
         catch (Exception ex)
         {

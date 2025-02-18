@@ -27,21 +27,44 @@ public class FirebaseAuthService : IFirebaseAuthService
     private readonly IConfiguration _configuration;
 
     public FirebaseAuthService(IConfiguration configuration,
-                             IFirestoreService firestore,
-                             ILogger<FirebaseAuthService> logger)
+                         IFirestoreService firestore,
+                         ILogger<FirebaseAuthService> logger)
     {
-        if (FirebaseApp.DefaultInstance == null)
-        {
-            FirebaseApp.Create(new AppOptions
-            {
-                Credential = GoogleCredential.FromFile("firebase-config.json")
-            });
-        }
-
-        _auth = FirebaseAuth.DefaultInstance;
+        _configuration = configuration;
         _firestore = firestore;
         _logger = logger;
-        _configuration = configuration;
+
+        try
+        {
+            if (FirebaseApp.DefaultInstance == null)
+            {
+                var credentialsPath = Path.GetFullPath(configuration["Firebase:CredentialsPath"]
+                    ?? throw new ArgumentException("Firebase:CredentialsPath configuration is required"));
+
+                _logger.LogInformation("Loading credentials from: {CredentialsPath}", credentialsPath);
+
+                if (!File.Exists(credentialsPath))
+                {
+                    throw new FileNotFoundException($"Credentials file not found at: {credentialsPath}");
+                }
+
+                var credential = GoogleCredential.FromFile(credentialsPath)
+                    .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
+
+                FirebaseApp.Create(new AppOptions
+                {
+                    Credential = credential,
+                    ProjectId = configuration["Firebase:ProjectId"]
+                });
+            }
+
+            _auth = FirebaseAuth.DefaultInstance;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to initialize Firebase: {Message}", ex.Message);
+            throw;
+        }
     }
 
     public async Task<UserResponseDto> CreateUser(RegisterUserDto registerDto)

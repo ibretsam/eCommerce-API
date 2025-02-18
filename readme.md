@@ -14,6 +14,8 @@
 - .NET 8.0 or later installed
 - A Firebase project with Firestore and Authentication (Email and Password) enabled
 - A valid Firebase service account key saved as `firebase-config.json` in the project root
+  - **Important**: The service account must have the "Firebase Admin" role in your Firebase project
+  - You can set this role in Firebase Console > Project Settings > Service Accounts > [Your Service Account] > Edit
 - Proper configuration settings in your configuration files (e.g., `appsettings.json` or environment variables) including the Firebase project ID under the key `Firebase:ProjectId`
 
 ### Installation & Running
@@ -35,6 +37,9 @@ dotnet run
 
 Once running, you can access the Swagger UI at `https://localhost:<port>/swagger` to test the endpoints.
 
+### Need Help?
+If you encounter any issues while setting up or running the project, feel free to open an issue on this repo or shoot me a message (email). I'm always around and happy to help get things sorted out ASAP! 🚀
+
 ### Configuration
 1. Update the `Firebase:ProjectId` setting in your configuration file to match your Firebase project
 2. Place your `firebase-config.json` file (downloaded from your Firebase console) in the project's root directory
@@ -44,7 +49,7 @@ Once running, you can access the Swagger UI at `https://localhost:<port>/swagger
 ### Solution Organization
 The solution is organized into two main projects:
 - **eCommerce.API**: The main application containing all business logic, controllers, and services
-- **eCommerce.Tests**: Contains unit tests and integration tests for the API
+- **eCommerce.Tests**: Contains unit tests for the API
 
 ### API Project Structure
 ```
