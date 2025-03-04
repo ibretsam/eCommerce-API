@@ -44,18 +44,6 @@ If you encounter any issues while setting up or running the project, feel free t
 1. Update the `Firebase:ProjectId` setting in your configuration file to match your Firebase project
 2. Place your `firebase-config.json` file (downloaded from your Firebase console) in the project's root directory
 
-## Live Demo
-The API is deployed and running on Google Cloud Run! You can test it out here:
-- API Base URL: https://codeleap-assessment-49301233617.asia-southeast1.run.app
-- Swagger UI: https://codeleap-assessment-49301233617.asia-southeast1.run.app/swagger
-
-### Testing the Deployed API
-1. Visit the Swagger UI link above to explore and test the endpoints
-2. Use the Authentication endpoint to create an account or login
-3. Use the returned token in the "Authorize" button (with 'Bearer' prefix) to access protected endpoints
-
-Note: The API is running in Asia Southeast 1 region (Singapore) for optimal latency in Southeast Asia.
-
 ### Cloud Infrastructure
 - **Platform**: Google Cloud Run
 - **Region**: asia-southeast1 (Singapore)
